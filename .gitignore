@@ -1,0 +1,32 @@
+node_modules
+.next
+.turbo
+dist
+
+# env-файлы с секретами
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Локи (оставь только тот, который реально используешь)
+pnpm-lock.yaml
+yarn.lock
+# package-lock.json — лучше НЕ игнорировать, чтобы фиксировать зависимости
+
+# Мусор ОС
+.DS_Store
+
+# SQLite (если вдруг появится)
+prisma/dev.db
+prisma/dev.db-journal
+
+# Логи
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Vercel / деплой
+.vercel
+

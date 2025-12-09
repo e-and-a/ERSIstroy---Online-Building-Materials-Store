@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f8f9fb;
+  --foreground: #111827;
+  --card: #ffffff;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --brand: #6d011d;
+  --ring: #f3ccd3;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  @apply antialiased;
+}
+
+.app-body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.card-surface {
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+
+.muted {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--muted);
+}
+
+a {
+  @apply transition-colors;
+}
+
+.ui-button.bg-slate-900 {
+  background-color: var(--brand);
+  border-color: var(--brand);
+  color: #ffffff;
+}
+
+.ui-button.bg-slate-900:hover {
+  background-color: #8a1a39;
+}
+
+.ui-button.bg-slate-900:active {
+  background-color: #5a0017;
+}
