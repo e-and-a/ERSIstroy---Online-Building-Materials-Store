@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 const navLinks = [
   { href: "/catalog", label: "Каталог", match: "/catalog" },
   { href: "/cart", label: "Корзина", match: "/cart" },
-  { href: "/order", label: "Оформить заказ", match: "/order" }
+  { href: "/order", label: "Оформить заказ", match: "/order" },
+  { href: "/agreement", label: "Соглашение", match: "/agreement" }
 ];
 
 export function SiteHeader() {
