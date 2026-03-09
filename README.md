@@ -41,8 +41,9 @@
 2) Prisma ORM
 
 ### Авторизация
-1) Сессии через httpOnly cookie
-2) Проверка доступа через middleware.ts
+1) Учебный локальный поток Authorization Code + PKCE (mock provider внутри проекта)
+2) Подписанная httpOnly cookie-сессия с ролью пользователя
+3) Проверка доступа и ролей через middleware.ts
 
 ---
 
@@ -73,6 +74,7 @@
 DATABASE_URL="postgres://..."
 ADMIN_LOGIN="admin"
 ADMIN_PASSWORD="strongpassword"
+AUTH_SESSION_SECRET="change-me-demo-secret"
 ```
 
 ---
@@ -116,6 +118,7 @@ http://localhost:3000
 
 ### Админка:
 	•	/admin/login — вход
+	•	/admin/login/callback — callback после PKCE-авторизации
 	•	/admin/orders — список заказов
 	•	/admin/orders/[id] — детали заказа
 	•	/admin/categories — категории

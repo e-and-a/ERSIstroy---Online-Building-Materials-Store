@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const SESSION_COOKIE = "ersi_admin_session";
+import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 
 function makeLogoutResponse(request: NextRequest) {
   const url = new URL("/admin/login?redirected=1", request.url);
@@ -8,7 +7,7 @@ function makeLogoutResponse(request: NextRequest) {
   const res = NextResponse.redirect(url);
 
   res.cookies.set({
-    name: SESSION_COOKIE,
+    name: SESSION_COOKIE_NAME,
     value: "",
     httpOnly: true,
     path: "/",

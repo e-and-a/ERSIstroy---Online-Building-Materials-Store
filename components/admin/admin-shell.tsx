@@ -1,13 +1,20 @@
 // components/admin/admin-shell.tsx
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { LogoutButton } from "@/components/admin/logout-button";
+import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
+import { verifyAdminSession } from "@/lib/auth/session";
 
 type AdminShellProps = {
   children: ReactNode;
 };
 
-export function AdminShell({ children }: AdminShellProps) {
+export async function AdminShell({ children }: AdminShellProps) {
+  const sessionToken = cookies().get(SESSION_COOKIE_NAME)?.value;
+  const session = await verifyAdminSession(sessionToken);
+  const isManager = session?.role === "manager";
+
   return (
     <div className="admin-shell min-h-screen bg-[#f8f9fb] text-slate-900">
       {/* HEADER */}
@@ -24,6 +31,9 @@ export function AdminShell({ children }: AdminShellProps) {
             <span className="admin-shell__subtitle text-xs text-gray-500">
               Админ-панель / управление каталогом и заказами
             </span>
+            {session?.role && (
+              <span className="text-xs text-gray-500">Роль: {session.role}</span>
+            )}
           </div>
 
           {/* ACTIONS: GO TO SITE + LOGOUT */}
@@ -47,18 +57,26 @@ export function AdminShell({ children }: AdminShellProps) {
             >
               Заказы
             </Link>
-            <Link
-              href="/admin/categories"
-              className="admin-shell__nav-link inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-white hover:text-brand-700 hover:shadow-sm"
-            >
-              Категории
-            </Link>
-            <Link
-              href="/admin/products"
-              className="admin-shell__nav-link inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-white hover:text-brand-700 hover:shadow-sm"
-            >
-              Товары
-            </Link>
+            {isManager ? (
+              <>
+                <Link
+                  href="/admin/categories"
+                  className="admin-shell__nav-link inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-white hover:text-brand-700 hover:shadow-sm"
+                >
+                  Категории
+                </Link>
+                <Link
+                  href="/admin/products"
+                  className="admin-shell__nav-link inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-white hover:text-brand-700 hover:shadow-sm"
+                >
+                  Товары
+                </Link>
+              </>
+            ) : (
+              <span className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
+                Режим viewer: только заказы
+              </span>
+            )}
           </div>
         </nav>
       </header>

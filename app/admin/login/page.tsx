@@ -1,59 +1,114 @@
 "use client";
 
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { DEMO_OAUTH_CLIENT_ID, PKCE_STORAGE_KEYS, type AdminRole } from "@/lib/auth/constants";
 import { Button } from "@/components/ui/button";
+
+const PKCE_ALLOWED_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+
+function randomPkceString(length: number) {
+  const randomValues = new Uint8Array(length);
+  crypto.getRandomValues(randomValues);
+
+  let result = "";
+  for (let index = 0; index < randomValues.length; index += 1) {
+    result += PKCE_ALLOWED_CHARS[randomValues[index] % PKCE_ALLOWED_CHARS.length];
+  }
+  return result;
+}
+
+function toBase64Url(bytes: Uint8Array) {
+  let binary = "";
+  bytes.forEach((value) => {
+    binary += String.fromCharCode(value);
+  });
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+async function createCodeChallenge(verifier: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
+  return toBase64Url(new Uint8Array(digest));
+}
 
 export default function AdminLoginPage() {
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loadingRole, setLoadingRole] = useState<AdminRole | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
+  const roleLabels = useMemo(
+    () => ({
+      manager: "Менеджер (полный доступ)",
+      viewer: "Наблюдатель (только заказы)"
+    }),
+    []
+  );
+
+  async function startLogin(role: AdminRole) {
+    setLoadingRole(role);
     setError("");
 
-    const formData = new FormData(e.target as HTMLFormElement);
+    try {
+      const state = randomPkceString(48);
+      const verifier = randomPkceString(96);
+      const challenge = await createCodeChallenge(verifier);
+      const redirectUri = `${window.location.origin}/admin/login/callback`;
 
-    const res = await fetch("/api/admin/login", {
-      method: "POST",
-      body: formData,
-    });
+      sessionStorage.setItem(PKCE_STORAGE_KEYS.state, state);
+      sessionStorage.setItem(PKCE_STORAGE_KEYS.verifier, verifier);
 
-    const data = await res.json();
+      const params = new URLSearchParams({
+        response_type: "code",
+        client_id: DEMO_OAUTH_CLIENT_ID,
+        redirect_uri: redirectUri,
+        state,
+        code_challenge: challenge,
+        code_challenge_method: "S256",
+        role
+      });
 
-    if (!res.ok) {
-      setError(data.error || "Ошибка");
-      setLoading(false);
-      return;
+      window.location.href = `/api/mock-oauth/authorize?${params.toString()}`;
+    } catch {
+      setError("Не удалось начать PKCE-авторизацию. Попробуйте снова.");
+      setLoadingRole(null);
     }
-
-    // Старый рабочий вариант: показывал {"success":true}
-    // и потом ты вручную переходил в админку
-    window.location.href = "/admin/orders";
   }
 
   return (
     <div className="admin-login flex min-h-screen items-center justify-center bg-[var(--background)] px-4 py-12">
       <div className="admin-login__card card-surface flex w-full max-w-md flex-col gap-4 bg-[var(--card)] p-8">
-        <h1 className="admin-login__title text-2xl font-bold text-[var(--foreground)]">Админ вход</h1>
+        <h1 className="admin-login__title text-2xl font-bold text-[var(--foreground)]">
+          Админ вход (Учебный PKCE)
+        </h1>
+        <p className="text-sm text-gray-600">
+          Выберите роль, чтобы запустить локальный поток Authorization Code + PKCE.
+        </p>
 
         {error && <div className="admin-login__error text-sm text-red-500">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="admin-login__form flex flex-col gap-4">
-          <Input name="login" placeholder="Логин" className="admin-login__input" required />
-          <Input
-            name="password"
-            type="password"
-            placeholder="Пароль"
-            className="admin-login__input"
-            required
-          />
-
-          <Button disabled={loading} className="admin-login__button">
-            {loading ? "Входим..." : "Войти"}
+        <div className="admin-login__form flex flex-col gap-3">
+          <Button
+            className="admin-login__button"
+            disabled={loadingRole !== null}
+            onClick={() => startLogin("manager")}
+          >
+            {loadingRole === "manager" ? "Запуск..." : roleLabels.manager}
           </Button>
-        </form>
+          <Button
+            variant="outline"
+            className="admin-login__button"
+            disabled={loadingRole !== null}
+            onClick={() => startLogin("viewer")}
+          >
+            {loadingRole === "viewer" ? "Запуск..." : roleLabels.viewer}
+          </Button>
+        </div>
+
+        <p className="text-xs text-gray-500">
+          Роль `viewer` не может открывать разделы категорий и товаров.
+        </p>
+        <Link href="/" className="text-xs text-gray-500 underline">
+          Вернуться на сайт
+        </Link>
       </div>
     </div>
   );
