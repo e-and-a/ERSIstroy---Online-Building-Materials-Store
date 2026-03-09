@@ -9,8 +9,24 @@ export const PKCE_STORAGE_KEYS = {
   state: "ersi_pkce_state"
 } as const;
 
-export type AdminRole = "manager" | "viewer";
+export type AdminRole = "admin" | "user";
 
-export const ADMIN_ROLES: AdminRole[] = ["manager", "viewer"];
+export const ADMIN_ROLES: AdminRole[] = ["admin", "user"];
 
-export const MANAGER_ONLY_PREFIXES = ["/admin/categories", "/admin/products"];
+export const DEMO_ACCOUNTS = {
+  adminMain: {
+    subject: "admin-main",
+    role: "admin",
+    label: "Админ"
+  },
+  userA: {
+    subject: "user-a",
+    role: "user",
+    label: "Пользователь A"
+  },
+  userB: {
+    subject: "user-b",
+    role: "user",
+    label: "Пользователь B"
+  }
+} as const;

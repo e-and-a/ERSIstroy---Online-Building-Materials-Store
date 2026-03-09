@@ -1,9 +1,17 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { CategoriesTable } from "@/components/categories/categories-table";
 import { getCategoriesWithMeta } from "@/lib/data/categories";
+import { getServerSession } from "@/lib/auth/server-session";
 
 export default async function AdminCategoriesPage() {
-  const categories = await getCategoriesWithMeta();
+  const session = await getServerSession();
+
+  if (!session) {
+    notFound();
+  }
+
+  const categories = await getCategoriesWithMeta(session);
 
   return (
     <section className="admin-categories-page mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
@@ -26,4 +34,3 @@ export default async function AdminCategoriesPage() {
     </section>
   );
 }
-

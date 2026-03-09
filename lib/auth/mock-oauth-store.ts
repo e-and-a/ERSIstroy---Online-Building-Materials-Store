@@ -5,6 +5,7 @@ type PendingAuthorizationCode = {
   redirectUri: string;
   codeChallenge: string;
   role: AdminRole;
+  subject: string;
   expiresAt: number;
 };
 

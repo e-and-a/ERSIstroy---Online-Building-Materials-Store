@@ -1,10 +1,17 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { CategoryForm } from "@/components/categories/category-form";
 import { getCategoryOptions } from "@/lib/data/categories";
 import { createCategoryAction } from "@/app/admin/(protected)/categories/actions";
+import { getServerSession } from "@/lib/auth/server-session";
 
 export default async function AdminCategoryCreatePage() {
-  const categories = await getCategoryOptions();
+  const session = await getServerSession();
+  if (!session) {
+    notFound();
+  }
+
+  const categories = await getCategoryOptions(undefined, session);
 
   return (
     <section className="admin-category-new-page mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
@@ -33,4 +40,3 @@ export default async function AdminCategoryCreatePage() {
     </section>
   );
 }
-

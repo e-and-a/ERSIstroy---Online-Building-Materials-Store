@@ -7,6 +7,7 @@ import {
 import { sha256Base64Url } from "@/lib/auth/crypto";
 import { consumeAuthorizationCode } from "@/lib/auth/mock-oauth-store";
 import { signAdminSession } from "@/lib/auth/session";
+import { prisma } from "@/lib/prisma";
 
 type TokenRequestBody = {
   grant_type?: string;
@@ -63,8 +64,18 @@ export async function POST(request: Request) {
   }
 
   const now = Math.floor(Date.now() / 1000);
+
+  await prisma.appUser.upsert({
+    where: { id: pendingCode.subject },
+    update: { role: pendingCode.role },
+    create: {
+      id: pendingCode.subject,
+      role: pendingCode.role
+    }
+  });
+
   const sessionToken = await signAdminSession({
-    sub: "demo-user",
+    sub: pendingCode.subject,
     role: pendingCode.role,
     exp: now + SESSION_TTL_SECONDS
   });

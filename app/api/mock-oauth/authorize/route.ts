@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ADMIN_ROLES, DEMO_OAUTH_CLIENT_ID, type AdminRole } from "@/lib/auth/constants";
+import {
+  ADMIN_ROLES,
+  DEMO_ACCOUNTS,
+  DEMO_OAUTH_CLIENT_ID,
+  type AdminRole
+} from "@/lib/auth/constants";
 import { issueAuthorizationCode } from "@/lib/auth/mock-oauth-store";
 
 function isAllowedRole(role: string): role is AdminRole {
@@ -15,6 +20,8 @@ export function GET(request: NextRequest) {
   const codeChallenge = url.searchParams.get("code_challenge");
   const codeChallengeMethod = url.searchParams.get("code_challenge_method");
   const roleParam = url.searchParams.get("role");
+  const accountId = url.searchParams.get("account");
+  const account = accountId ? DEMO_ACCOUNTS[accountId as keyof typeof DEMO_ACCOUNTS] : null;
 
   if (
     responseType !== "code" ||
@@ -24,7 +31,9 @@ export function GET(request: NextRequest) {
     !codeChallenge ||
     codeChallengeMethod !== "S256" ||
     !roleParam ||
-    !isAllowedRole(roleParam)
+    !isAllowedRole(roleParam) ||
+    !account ||
+    account.role !== roleParam
   ) {
     return NextResponse.json(
       { error: "invalid_request", error_description: "Неверные параметры авторизации." },
@@ -53,7 +62,8 @@ export function GET(request: NextRequest) {
     clientId,
     redirectUri,
     codeChallenge,
-    role: roleParam
+    role: roleParam,
+    subject: account.subject
   });
 
   redirectUrl.searchParams.set("code", code);

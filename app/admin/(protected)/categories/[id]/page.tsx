@@ -7,19 +7,25 @@ import {
   deleteCategoryAction,
   updateCategoryAction
 } from "@/app/admin/(protected)/categories/actions";
+import { getServerSession } from "@/lib/auth/server-session";
 
 type PageProps = {
   params: { id: string };
 };
 
 export default async function AdminCategoryDetailsPage({ params }: PageProps) {
-  const category = await getCategoryById(params.id);
+  const session = await getServerSession();
+  if (!session) {
+    notFound();
+  }
+
+  const category = await getCategoryById(params.id, session);
 
   if (!category) {
     notFound();
   }
 
-  const parentOptions = await getCategoryOptions(category.id);
+  const parentOptions = await getCategoryOptions(category.id, session);
   const hasProducts = category._count.products > 0;
   const updateAction = updateCategoryAction.bind(null, category.id);
 
@@ -79,4 +85,3 @@ export default async function AdminCategoryDetailsPage({ params }: PageProps) {
     </section>
   );
 }
-

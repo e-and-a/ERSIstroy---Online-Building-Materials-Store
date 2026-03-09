@@ -9,11 +9,25 @@ import {
   parseProductImages,
   type ProductFormState
 } from "@/lib/forms/product";
+import { getServerSession } from "@/lib/auth/server-session";
+
+async function getAuthSession() {
+  const session = await getServerSession();
+  if (!session) {
+    return null;
+  }
+  return session;
+}
 
 export async function createProductAction(
   _prevState: ProductFormState,
   formData: FormData
 ): Promise<ProductFormState> {
+  const session = await getAuthSession();
+  if (!session) {
+    return { formError: "Сессия истекла. Выполните вход снова." };
+  }
+
   const parsed = productFormSchema.safeParse({
     name: formData.get("name"),
     slug: formData.get("slug"),
@@ -36,6 +50,17 @@ export async function createProductAction(
   const data = parsed.data;
 
   try {
+    if (session.role === "user") {
+      const category = await prisma.category.findUnique({
+        where: { id: data.categoryId },
+        select: { id: true, createdById: true }
+      });
+
+      if (!category || category.createdById !== session.sub) {
+        return { errors: { categoryId: ["Можно выбрать только свою категорию."] } };
+      }
+    }
+
     await prisma.product.create({
       data: {
         name: data.name,
@@ -48,6 +73,7 @@ export async function createProductAction(
         volume: data.volume ? new Prisma.Decimal(data.volume) : null,
         isAvailable: data.isAvailable,
         isOnDemand: data.isOnDemand,
+        createdById: session.sub,
         images: {
           create: parseProductImages(data.images).map((url) => ({ url }))
         }
@@ -72,6 +98,11 @@ export async function updateProductAction(
   _prevState: ProductFormState,
   formData: FormData
 ): Promise<ProductFormState> {
+  const session = await getAuthSession();
+  if (!session) {
+    return { formError: "Сессия истекла. Выполните вход снова." };
+  }
+
   const parsed = productFormSchema.safeParse({
     name: formData.get("name"),
     slug: formData.get("slug"),
@@ -94,6 +125,30 @@ export async function updateProductAction(
   const data = parsed.data;
 
   try {
+    const existing = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, createdById: true }
+    });
+
+    if (!existing) {
+      return { formError: "Товар не найден." };
+    }
+
+    if (session.role === "user" && existing.createdById !== session.sub) {
+      return { formError: "Недостаточно прав для изменения этого товара." };
+    }
+
+    if (session.role === "user") {
+      const category = await prisma.category.findUnique({
+        where: { id: data.categoryId },
+        select: { id: true, createdById: true }
+      });
+
+      if (!category || category.createdById !== session.sub) {
+        return { errors: { categoryId: ["Можно выбрать только свою категорию."] } };
+      }
+    }
+
     await prisma.product.update({
       where: { id: productId },
       data: {
@@ -129,12 +184,30 @@ export async function updateProductAction(
 }
 
 export async function deleteProductAction(formData: FormData) {
+  const session = await getAuthSession();
+  if (!session) {
+    return;
+  }
+
   const productId = formData.get("productId");
   if (!productId || typeof productId !== "string") {
     return;
   }
 
   try {
+    const existing = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, createdById: true }
+    });
+
+    if (!existing) {
+      return;
+    }
+
+    if (session.role === "user" && existing.createdById !== session.sub) {
+      return;
+    }
+
     await prisma.product.delete({
       where: { id: productId }
     });
@@ -146,4 +219,3 @@ export async function deleteProductAction(formData: FormData) {
   revalidatePath("/admin/products");
   redirect("/admin/products");
 }
-

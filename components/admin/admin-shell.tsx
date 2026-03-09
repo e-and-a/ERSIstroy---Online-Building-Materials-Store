@@ -13,7 +13,7 @@ type AdminShellProps = {
 export async function AdminShell({ children }: AdminShellProps) {
   const sessionToken = cookies().get(SESSION_COOKIE_NAME)?.value;
   const session = await verifyAdminSession(sessionToken);
-  const isManager = session?.role === "manager";
+  const isAdmin = session?.role === "admin";
 
   return (
     <div className="admin-shell min-h-screen bg-[#f8f9fb] text-slate-900">
@@ -57,24 +57,21 @@ export async function AdminShell({ children }: AdminShellProps) {
             >
               Заказы
             </Link>
-            {isManager ? (
-              <>
-                <Link
-                  href="/admin/categories"
-                  className="admin-shell__nav-link inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-white hover:text-brand-700 hover:shadow-sm"
-                >
-                  Категории
-                </Link>
-                <Link
-                  href="/admin/products"
-                  className="admin-shell__nav-link inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-white hover:text-brand-700 hover:shadow-sm"
-                >
-                  Товары
-                </Link>
-              </>
-            ) : (
+            <Link
+              href="/admin/categories"
+              className="admin-shell__nav-link inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-white hover:text-brand-700 hover:shadow-sm"
+            >
+              Категории
+            </Link>
+            <Link
+              href="/admin/products"
+              className="admin-shell__nav-link inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-white hover:text-brand-700 hover:shadow-sm"
+            >
+              Товары
+            </Link>
+            {!isAdmin && (
               <span className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
-                Режим viewer: только заказы
+                Режим user: доступны только свои сущности
               </span>
             )}
           </div>

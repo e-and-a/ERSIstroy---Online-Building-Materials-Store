@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { DEMO_OAUTH_CLIENT_ID, PKCE_STORAGE_KEYS, type AdminRole } from "@/lib/auth/constants";
+import { useState } from "react";
+import { DEMO_ACCOUNTS, DEMO_OAUTH_CLIENT_ID, PKCE_STORAGE_KEYS } from "@/lib/auth/constants";
 import { Button } from "@/components/ui/button";
 
 const PKCE_ALLOWED_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
@@ -33,21 +33,14 @@ async function createCodeChallenge(verifier: string) {
 
 export default function AdminLoginPage() {
   const [error, setError] = useState("");
-  const [loadingRole, setLoadingRole] = useState<AdminRole | null>(null);
+  const [loadingAccount, setLoadingAccount] = useState<string | null>(null);
 
-  const roleLabels = useMemo(
-    () => ({
-      manager: "Менеджер (полный доступ)",
-      viewer: "Наблюдатель (только заказы)"
-    }),
-    []
-  );
-
-  async function startLogin(role: AdminRole) {
-    setLoadingRole(role);
+  async function startLogin(accountId: keyof typeof DEMO_ACCOUNTS) {
+    setLoadingAccount(accountId);
     setError("");
 
     try {
+      const account = DEMO_ACCOUNTS[accountId];
       const state = randomPkceString(48);
       const verifier = randomPkceString(96);
       const challenge = await createCodeChallenge(verifier);
@@ -63,13 +56,14 @@ export default function AdminLoginPage() {
         state,
         code_challenge: challenge,
         code_challenge_method: "S256",
-        role
+        role: account.role,
+        account: accountId
       });
 
       window.location.href = `/api/mock-oauth/authorize?${params.toString()}`;
     } catch {
       setError("Не удалось начать PKCE-авторизацию. Попробуйте снова.");
-      setLoadingRole(null);
+      setLoadingAccount(null);
     }
   }
 
@@ -80,7 +74,7 @@ export default function AdminLoginPage() {
           Админ вход (Учебный PKCE)
         </h1>
         <p className="text-sm text-gray-600">
-          Выберите роль, чтобы запустить локальный поток Authorization Code + PKCE.
+          Выберите аккаунт, чтобы запустить локальный поток Authorization Code + PKCE.
         </p>
 
         {error && <div className="admin-login__error text-sm text-red-500">{error}</div>}
@@ -88,23 +82,31 @@ export default function AdminLoginPage() {
         <div className="admin-login__form flex flex-col gap-3">
           <Button
             className="admin-login__button"
-            disabled={loadingRole !== null}
-            onClick={() => startLogin("manager")}
+            disabled={loadingAccount !== null}
+            onClick={() => startLogin("adminMain")}
           >
-            {loadingRole === "manager" ? "Запуск..." : roleLabels.manager}
+            {loadingAccount === "adminMain" ? "Запуск..." : "Админ (доступ ко всем сущностям)"}
           </Button>
           <Button
             variant="outline"
             className="admin-login__button"
-            disabled={loadingRole !== null}
-            onClick={() => startLogin("viewer")}
+            disabled={loadingAccount !== null}
+            onClick={() => startLogin("userA")}
           >
-            {loadingRole === "viewer" ? "Запуск..." : roleLabels.viewer}
+            {loadingAccount === "userA" ? "Запуск..." : "Пользователь A (свои сущности)"}
+          </Button>
+          <Button
+            variant="outline"
+            className="admin-login__button"
+            disabled={loadingAccount !== null}
+            onClick={() => startLogin("userB")}
+          >
+            {loadingAccount === "userB" ? "Запуск..." : "Пользователь B (свои сущности)"}
           </Button>
         </div>
 
         <p className="text-xs text-gray-500">
-          Роль `viewer` не может открывать разделы категорий и товаров.
+          Пользователь видит и изменяет только свои категории и товары.
         </p>
         <Link href="/" className="text-xs text-gray-500 underline">
           Вернуться на сайт

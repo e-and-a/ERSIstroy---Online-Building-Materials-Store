@@ -6,11 +6,25 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { categoryFormSchema } from "@/lib/validators/category";
 import type { CategoryFormState } from "@/lib/forms/category";
+import { getServerSession } from "@/lib/auth/server-session";
+
+async function getAuthSession() {
+  const session = await getServerSession();
+  if (!session) {
+    return null;
+  }
+  return session;
+}
 
 export async function createCategoryAction(
   _prevState: CategoryFormState,
   formData: FormData
 ): Promise<CategoryFormState> {
+  const session = await getAuthSession();
+  if (!session) {
+    return { formError: "Сессия истекла. Выполните вход снова." };
+  }
+
   const parsed = categoryFormSchema.safeParse({
     name: formData.get("name"),
     slug: formData.get("slug"),
@@ -25,11 +39,23 @@ export async function createCategoryAction(
   const data = parsed.data;
 
   try {
+    if (session.role === "user" && data.parentId) {
+      const parent = await prisma.category.findUnique({
+        where: { id: data.parentId },
+        select: { id: true, createdById: true }
+      });
+
+      if (!parent || parent.createdById !== session.sub) {
+        return { errors: { parentId: ["Можно выбрать только свою категорию."] } };
+      }
+    }
+
     await prisma.category.create({
       data: {
         name: data.name,
         slug: data.slug,
-        parentId: data.parentId
+        parentId: data.parentId,
+        createdById: session.sub
       }
     });
   } catch (error) {
@@ -51,6 +77,11 @@ export async function updateCategoryAction(
   _prevState: CategoryFormState,
   formData: FormData
 ): Promise<CategoryFormState> {
+  const session = await getAuthSession();
+  if (!session) {
+    return { formError: "Сессия истекла. Выполните вход снова." };
+  }
+
   const parsed = categoryFormSchema.safeParse({
     name: formData.get("name"),
     slug: formData.get("slug"),
@@ -71,6 +102,30 @@ export async function updateCategoryAction(
   }
 
   try {
+    const existing = await prisma.category.findUnique({
+      where: { id: categoryId },
+      select: { id: true, createdById: true }
+    });
+
+    if (!existing) {
+      return { formError: "Категория не найдена." };
+    }
+
+    if (session.role === "user" && existing.createdById !== session.sub) {
+      return { formError: "Недостаточно прав для изменения этой категории." };
+    }
+
+    if (session.role === "user" && data.parentId) {
+      const parent = await prisma.category.findUnique({
+        where: { id: data.parentId },
+        select: { id: true, createdById: true }
+      });
+
+      if (!parent || parent.createdById !== session.sub) {
+        return { errors: { parentId: ["Можно выбрать только свою категорию."] } };
+      }
+    }
+
     await prisma.category.update({
       where: { id: categoryId },
       data: {
@@ -95,12 +150,30 @@ export async function updateCategoryAction(
 }
 
 export async function deleteCategoryAction(formData: FormData) {
+  const session = await getAuthSession();
+  if (!session) {
+    return;
+  }
+
   const id = formData.get("categoryId");
   if (!id || typeof id !== "string") {
     return;
   }
 
   try {
+    const existing = await prisma.category.findUnique({
+      where: { id },
+      select: { id: true, createdById: true }
+    });
+
+    if (!existing) {
+      return;
+    }
+
+    if (session.role === "user" && existing.createdById !== session.sub) {
+      return;
+    }
+
     await prisma.category.delete({
       where: { id }
     });
@@ -112,4 +185,3 @@ export async function deleteCategoryAction(formData: FormData) {
   revalidatePath("/admin/categories");
   redirect("/admin/categories");
 }
-

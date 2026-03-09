@@ -1,4 +1,17 @@
 import { prisma } from "@/lib/prisma";
+import type { AdminRole } from "@/lib/auth/constants";
+
+type SessionScope = {
+  role: AdminRole;
+  sub: string;
+};
+
+function ownerFilter(scope?: SessionScope) {
+  if (!scope || scope.role === "admin") {
+    return undefined;
+  }
+  return { createdById: scope.sub };
+}
 
 const productInclude = {
   category: {
@@ -14,8 +27,9 @@ const productInclude = {
   }
 } as const;
 
-export async function getProductsWithMeta() {
+export async function getProductsWithMeta(scope?: SessionScope) {
   return prisma.product.findMany({
+    where: ownerFilter(scope),
     include: {
       category: true,
       images: true
@@ -24,9 +38,12 @@ export async function getProductsWithMeta() {
   });
 }
 
-export async function getProductById(id: string) {
-  return prisma.product.findUnique({
-    where: { id },
+export async function getProductById(id: string, scope?: SessionScope) {
+  return prisma.product.findFirst({
+    where: {
+      id,
+      ...(ownerFilter(scope) ?? {})
+    },
     include: {
       category: true,
       images: true
@@ -58,4 +75,3 @@ export async function getProductBySlug(slug: string) {
     include: productInclude
   });
 }
-

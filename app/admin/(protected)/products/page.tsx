@@ -1,10 +1,18 @@
 import type { Route } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ProductsTable } from "@/components/products/products-table";
 import { getProductsWithMeta } from "@/lib/data/products";
+import { getServerSession } from "@/lib/auth/server-session";
 
 export default async function AdminProductsPage() {
-  const products = await getProductsWithMeta();
+  const session = await getServerSession();
+
+  if (!session) {
+    notFound();
+  }
+
+  const products = await getProductsWithMeta(session);
   const newProductHref = "/admin/products/new" as Route;
 
   return (
@@ -28,4 +36,3 @@ export default async function AdminProductsPage() {
     </section>
   );
 }
-

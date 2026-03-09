@@ -37,16 +37,33 @@ enum OrderType {
   calculation_request
 }
 
+enum UserRole {
+  admin
+  user
+}
+
+model AppUser {
+  id         String     @id
+  role       UserRole   @default(user)
+  createdAt  DateTime   @default(now())
+  categories Category[] @relation("CategoryOwner")
+  products   Product[]  @relation("ProductOwner")
+}
+
 model Category {
   id        String     @id @default(cuid())
   name      String
   slug      String     @unique
   parentId  String?
+  createdById String?
+  createdBy  AppUser?   @relation("CategoryOwner", fields: [createdById], references: [id], onDelete: SetNull)
   parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children  Category[] @relation("CategoryHierarchy")
   products  Product[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+
+  @@index([createdById])
 }
 
 model Product {
@@ -55,6 +72,8 @@ model Product {
   slug        String    @unique
   description String?
   categoryId  String
+  createdById String?
+  createdBy   AppUser?  @relation("ProductOwner", fields: [createdById], references: [id], onDelete: SetNull)
   category    Category  @relation(fields: [categoryId], references: [id])
   images      ProductImage[]
   price       Decimal   @db.Decimal(12, 2)
@@ -66,6 +85,8 @@ model Product {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   items       OrderItem[]
+
+  @@index([createdById])
 }
 
 model ProductImage {
@@ -104,4 +125,3 @@ model OrderItem {
   product        Product? @relation(fields: [productId], references: [id])
   createdAt      DateTime @default(now())
 }
-

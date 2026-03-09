@@ -1,11 +1,18 @@
 import type { Route } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ProductForm } from "@/components/products/product-form";
 import { getCategoryOptions } from "@/lib/data/categories";
 import { createProductAction } from "@/app/admin/(protected)/products/actions";
+import { getServerSession } from "@/lib/auth/server-session";
 
 export default async function AdminProductCreatePage() {
-  const categories = await getCategoryOptions();
+  const session = await getServerSession();
+  if (!session) {
+    notFound();
+  }
+
+  const categories = await getCategoryOptions(undefined, session);
   const productsListHref = "/admin/products" as Route;
 
   return (
@@ -54,4 +61,3 @@ export default async function AdminProductCreatePage() {
     </section>
   );
 }
-

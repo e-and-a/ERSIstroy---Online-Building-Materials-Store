@@ -9,19 +9,25 @@ import {
   deleteProductAction,
   updateProductAction
 } from "@/app/admin/(protected)/products/actions";
+import { getServerSession } from "@/lib/auth/server-session";
 
 type PageProps = {
   params: { id: string };
 };
 
 export default async function AdminProductDetailsPage({ params }: PageProps) {
-  const product = await getProductById(params.id);
+  const session = await getServerSession();
+  if (!session) {
+    notFound();
+  }
+
+  const product = await getProductById(params.id, session);
 
   if (!product) {
     notFound();
   }
 
-  const categories = await getCategoryOptions();
+  const categories = await getCategoryOptions(undefined, session);
   const updateAction = updateProductAction.bind(null, product.id);
   const productsListHref = "/admin/products" as Route;
 
@@ -80,4 +86,3 @@ export default async function AdminProductDetailsPage({ params }: PageProps) {
     </section>
   );
 }
-
